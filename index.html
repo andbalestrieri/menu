@@ -17,6 +17,41 @@
 </body>
 
 <script>
-    document.getElementById('menu').src = 'menu.webp?v=' + Date.now();
-</script>
+        const menu = document.getElementById('menu');
+        const error = document.getElementById('error');
+        async function loadMenu() {
+            try {
+                const url = `menu.webp?_=${Date.now()}`;
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+
+                menu.onload = () => {
+                    URL.revokeObjectURL(objectUrl);
+                };
+
+                menu.src = objectUrl;
+
+            } catch (e) {
+                console.error('Errore caricamento menu:', e);
+                menu.style.display = 'none';
+                error.style.display = 'block';
+            }
+        }
+
+        loadMenu();
+    </script>
 </html>
