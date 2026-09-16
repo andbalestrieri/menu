@@ -6,27 +6,28 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Pellegreen bar</title>
 
-<style>
+<<style>
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
     width: 100%;
     background: #111;
-    overflow: hidden;
+    overflow: hidden; /* niente scroll sul body */
   }
   #container {
     height: 100vh;
     width: 100vw;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    align-items: center;      /* centra verticalmente (non serve scrollare qui) */
+    justify-content: flex-start; /* parte da sinistra, si scrolla verso destra */
+    overflow-x: auto;   /* scroll orizzontale se il documento è più largo */
+    overflow-y: hidden;  /* niente scroll verticale, mai */
   }
   canvas {
-    max-width: 100vw;
-    max-height: 100vh;
-    width: auto;
-    height: auto;
+    height: 100vh;   /* riempie sempre l'altezza dello schermo */
+    width: auto;     /* la larghezza segue le proporzioni del PDF */
+    display: block;
     -webkit-user-select: none;
     user-select: none;
     pointer-events: none;
