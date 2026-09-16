@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Pellegreen bar</title>
 
 <style>
@@ -42,7 +43,7 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-  const url = "menu.pdf";
+  const url = "menu.pdf?v=" + Date.now();
   const container = document.getElementById("container");
 
   pdfjsLib.getDocument(url).promise.then(pdf => {
