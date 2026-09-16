@@ -1,37 +1,48 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Pellegreen bar</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu</title>
 <style>
+  * {
+    box-sizing: border-box;
+  }
   html, body {
     margin: 0;
     padding: 0;
     width: 100%;
+    min-height: 100%;
     background: #111;
     overflow-x: hidden;
-    align-items: center;
+  }
+  body {
+    display: flex;
+    justify-content: center; /* centra il container orizzontalmente */
   }
   #container {
+    /* Su schermi piccoli riempie tutto, su schermi grandi si ferma a 480px.
+       Modifica questo valore se vuoi che sia più grande/piccolo su desktop. */
     width: min(100%, 480px);
     display: flex;
     flex-direction: column;
-    align-items: center;   /* centra se il documento è più piccolo dello schermo */
+    align-items: center;
+  }
+  .page-slot {
+    display: block;
+    width: 100%;
+    margin-bottom: 4px;
   }
   canvas {
     display: block;
-    margin-bottom: 4px;
+    width: 100%;
+    height: auto;
     -webkit-user-select: none;
     user-select: none;
     pointer-events: none;
-    max-width: 100%;  /* non supera mai la larghezza schermo */
   }
 </style>
 </head>
-
 <body oncontextmenu="return false;">
 
 <div id="container"></div>
@@ -41,14 +52,12 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-  const url = "menu.pdf";
   const container = document.getElementById("container");
   let pdfDoc = null;
   const dpr = window.devicePixelRatio || 1;
   const slots = [];
 
-  // Legge la larghezza REALE del contenitore (dopo che il CSS/max-width
-  // è stato applicato), non quella della finestra
+  // Legge la larghezza reale del contenitore (dopo che il CSS/max-width è stato applicato)
   function getTargetWidth() {
     return container.clientWidth;
   }
@@ -56,9 +65,8 @@
   function computeScale(baseViewport) {
     const targetWidth = getTargetWidth();
     const fitWidthScale = targetWidth / baseViewport.width;
+    // Math.min(..., 1) evita l'upscale se il PDF è già più piccolo del contenitore
     return Math.min(fitWidthScale, 1) * dpr;
-    // Nota: Math.min(..., 1) evita l'upscale se il PDF nella sua
-    // dimensione naturale è già più piccolo del contenitore
   }
 
   function renderPageIntoSlot(pageNum, slot) {
@@ -85,13 +93,12 @@
     for (let i = 1; i <= pdfDoc.numPages; i++) {
       promises.push(pdfDoc.getPage(i).then(page => {
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = computeScale(baseViewport);
-        const viewport = page.getViewport({ scale });
 
         const slot = document.createElement("div");
         slot.className = "page-slot";
-        // aspect-ratio mantiene lo spazio corretto anche prima del rendering
-        slot.style.aspectRatio = (viewport.width / viewport.height);
+        // aspect-ratio riserva lo spazio corretto anche prima del rendering,
+        // evitando "salti" di layout durante lo scroll
+        slot.style.aspectRatio = (baseViewport.width / baseViewport.height);
         slot.dataset.pageNum = i;
         container.appendChild(slot);
         slots[i - 1] = slot;
@@ -108,15 +115,36 @@
           renderPageIntoSlot(pageNum, entry.target);
         }
       });
-    }, { rootMargin: "800px 0px" });
+    }, { rootMargin: "800px 0px" }); // inizia a renderizzare un po' prima che sia visibile
 
     slots.forEach(slot => observer.observe(slot));
   }
 
-  pdfjsLib.getDocument(url).promise.then(pdf => {
-    pdfDoc = pdf;
-    createSlots().then(setupLazyLoading);
+  // Determina un URL "versionato" leggendo gli header del server (ETag /
+  // Last-Modified), che cambiano automaticamente ogni volta che sostituisci
+  // menu.pdf su GitHub. Così il browser usa la cache quando il file non è
+  // cambiato, e lo riscarica solo quando è davvero diverso — senza dover
+  // mai toccare questo file manualmente.
+  async function getVersionedUrl() {
+    try {
+      const res = await fetch("menu.pdf", { method: "HEAD", cache: "no-store" });
+      const tag = res.headers.get("etag") || res.headers.get("last-modified");
+      if (tag) {
+        return "menu.pdf?v=" + encodeURIComponent(tag);
+      }
+    } catch (e) {
+      console.warn("Impossibile leggere la versione del PDF, procedo senza cache-buster", e);
+    }
+    return "menu.pdf"; // fallback se gli header non sono disponibili
+  }
+
+  getVersionedUrl().then(url => {
+    pdfjsLib.getDocument(url).promise.then(pdf => {
+      pdfDoc = pdf;
+      createSlots().then(setupLazyLoading);
+    });
   });
 </script>
+
 </body>
 </html>
