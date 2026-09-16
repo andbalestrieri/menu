@@ -4,33 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Pellegreen bar1</title>
+    <title>Pellegreen bar2</title>
 
-<<style>
+<style>
   html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
     width: 100%;
     background: #111;
-    overflow: hidden; /* niente scroll sul body */
+    overflow-x: hidden;  /* niente scroll orizzontale, mai */
   }
   #container {
-    height: 100vh;
-    width: 100vw;
+    width: 100%;
     display: flex;
-    align-items: center;      /* centra verticalmente (non serve scrollare qui) */
-    justify-content: flex-start; /* parte da sinistra, si scrolla verso destra */
-    overflow-x: auto;   /* scroll orizzontale se il documento è più largo */
-    overflow-y: hidden;  /* niente scroll verticale, mai */
+    flex-direction: column;
+    align-items: center;   /* centra se il documento è più piccolo dello schermo */
   }
   canvas {
-    height: 100vh;   /* riempie sempre l'altezza dello schermo */
-    width: auto;     /* la larghezza segue le proporzioni del PDF */
     display: block;
+    margin-bottom: 4px;
     -webkit-user-select: none;
     user-select: none;
     pointer-events: none;
+    max-width: 100%;  /* non supera mai la larghezza schermo */
   }
 </style>
 </head>
