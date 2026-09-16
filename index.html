@@ -40,24 +40,82 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-  const url = "menu.pdf?v=" + Date.now();
+  const url = "menu.pdf";
   const container = document.getElementById("container");
+  let pdfDoc = null;
+  const dpr = window.devicePixelRatio || 1;
+  const slots = [];
+
+  // Legge la larghezza REALE del contenitore (dopo che il CSS/max-width
+  // è stato applicato), non quella della finestra
+  function getTargetWidth() {
+    return container.clientWidth;
+  }
+
+  function computeScale(baseViewport) {
+    const targetWidth = getTargetWidth();
+    const fitWidthScale = targetWidth / baseViewport.width;
+    return Math.min(fitWidthScale, 1) * dpr;
+    // Nota: Math.min(..., 1) evita l'upscale se il PDF nella sua
+    // dimensione naturale è già più piccolo del contenitore
+  }
+
+  function renderPageIntoSlot(pageNum, slot) {
+    if (slot.dataset.rendered === "1") return;
+    pdfDoc.getPage(pageNum).then(page => {
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = computeScale(baseViewport);
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      slot.appendChild(canvas);
+      slot.dataset.rendered = "1";
+
+      const ctx = canvas.getContext("2d");
+      page.render({ canvasContext: ctx, viewport: viewport });
+    });
+  }
+
+  function createSlots() {
+    const promises = [];
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      promises.push(pdfDoc.getPage(i).then(page => {
+        const baseViewport = page.getViewport({ scale: 1 });
+        const scale = computeScale(baseViewport);
+        const viewport = page.getViewport({ scale });
+
+        const slot = document.createElement("div");
+        slot.className = "page-slot";
+        // aspect-ratio mantiene lo spazio corretto anche prima del rendering
+        slot.style.aspectRatio = (viewport.width / viewport.height);
+        slot.dataset.pageNum = i;
+        container.appendChild(slot);
+        slots[i - 1] = slot;
+      }));
+    }
+    return Promise.all(promises);
+  }
+
+  function setupLazyLoading() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const pageNum = parseInt(entry.target.dataset.pageNum, 10);
+          renderPageIntoSlot(pageNum, entry.target);
+        }
+      });
+    }, { rootMargin: "800px 0px" });
+
+    slots.forEach(slot => observer.observe(slot));
+  }
 
   pdfjsLib.getDocument(url).promise.then(pdf => {
-    for (let i = 1; i <= pdf.numPages; i++) {
-      pdf.getPage(i).then(page => {
-        const scale = 2; // qualità immagine
-        const viewport = page.getViewport({ scale });
-        const canvas = document.createElement("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        container.appendChild(canvas);
-        const ctx = canvas.getContext("2d");
-        page.render({ canvasContext: ctx, viewport: viewport });
-      });
-    }
+    pdfDoc = pdf;
+    createSlots().then(setupLazyLoading);
   });
 </script>
-
 </body>
 </html>
