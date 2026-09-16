@@ -12,46 +12,33 @@
     </style>
 </head>
 
-<body>
-    <main><img class="page" src="test.webp"></img></main>
-</body>
+<body oncontextmenu="return false;">
 
+<div id="container"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-        const menu = document.getElementById('menu');
-        const error = document.getElementById('error');
-        async function loadMenu() {
-            try {
-                const url = `menu.webp?_=${Date.now()}`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache'
-                    }
-                });
+  const url = "menu.pdf";
+  const container = document.getElementById("container");
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
+  pdfjsLib.getDocument(url).promise.then(pdf => {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      pdf.getPage(i).then(page => {
+        const scale = 2; // qualità immagine
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        container.appendChild(canvas);
+        const ctx = canvas.getContext("2d");
+        page.render({ canvasContext: ctx, viewport: viewport });
+      });
+    }
+  });
+</script>
 
-                const blob = await response.blob();
-                const objectUrl = URL.createObjectURL(blob);
-
-                menu.onload = () => {
-                    URL.revokeObjectURL(objectUrl);
-                };
-
-                menu.src = objectUrl;
-
-            } catch (e) {
-                console.error('Errore caricamento menu:', e);
-                menu.style.display = 'none';
-                error.style.display = 'block';
-            }
-        }
-
-        loadMenu();
-    </script>
+</body>
 </html>
