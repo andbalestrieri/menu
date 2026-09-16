@@ -100,25 +100,31 @@
     return Math.min(fitWidthScale, 1) * dpr;
   }
 
-  function renderPageIntoSlot(pageNum, slot) {
-    if (slot.dataset.rendered === "1") return;
-    pdfDoc.getPage(pageNum).then(page => {
-      const baseViewport = page.getViewport({ scale: 1 });
-      const scale = computeScale(baseViewport);
-      const viewport = page.getViewport({ scale });
+  let firstPageRendered = false;
 
-      const canvas = document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+function renderPageIntoSlot(pageNum, slot) {
+  if (slot.dataset.rendered === "1") return;
+  pdfDoc.getPage(pageNum).then(page => {
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = computeScale(baseViewport);
+    const viewport = page.getViewport({ scale });
 
-      slot.appendChild(canvas);
-      slot.dataset.rendered = "1";
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
 
-      const ctx = canvas.getContext("2d");
-      page.render({ canvasContext: ctx, viewport: viewport });
+    slot.appendChild(canvas);
+    slot.dataset.rendered = "1";
+
+    const ctx = canvas.getContext("2d");
+    page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
+      if (pageNum === 1 && !firstPageRendered) {
+        firstPageRendered = true;
+        hideLoader();
+      }
     });
-  }
-
+  });
+}
   function createSlots() {
     const promises = [];
     for (let i = 1; i <= pdfDoc.numPages; i++) {
@@ -172,7 +178,6 @@
       pdfDoc = pdf;
       createSlots().then(() => {
         setupLazyLoading();
-        hideLoader();
       });
     });
   });
